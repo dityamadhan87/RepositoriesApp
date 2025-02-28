@@ -15,22 +15,32 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleOwner
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 
 @Composable
-fun RepositoriesScreen(repos: LazyPagingItems<Repository>) {
+fun RepositoriesScreen(
+    repos: LazyPagingItems<Repository>,
+    timerText: String,
+    getTimer: () -> CustomCountdown,
+    onPauseTimer: () -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(
             vertical = 8.dp,
             horizontal = 8.dp
         )
     ) {
+        item {
+            CountdownItem(timerText, getTimer, onPauseTimer)
+        }
         items(repos.itemCount) { index ->
             repos[index]?.let {
                 RepositoryItem(
@@ -77,6 +87,24 @@ fun RepositoriesScreen(repos: LazyPagingItems<Repository>) {
             }
         }
     }
+}
+
+@Composable
+private fun CountdownItem(
+    timerText: String,
+    getTimer: () -> CustomCountdown,
+    onPauseTimer: () -> Unit) {
+    val lifecycleOwner: LifecycleOwner =
+        LocalLifecycleOwner.current
+    val lifecycle = lifecycleOwner.lifecycle
+    DisposableEffect(key1 = lifecycleOwner) {
+        lifecycle.addObserver(getTimer())
+        onDispose {
+            onPauseTimer()
+            lifecycle.removeObserver(getTimer())
+        }
+    }
+    Text(timerText)
 }
 
 @Composable
